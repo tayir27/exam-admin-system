@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考试公告汇总系统 - 后台管理</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 头部标题 -->
+        <header class="admin-header">
+            <h1>考试公告汇总系统 - 后台管理</h1>
+            <div class="header-actions">
+                <button id="refreshButton" class="btn btn-secondary">刷新数据</button>
+                <button id="addButton" class="btn btn-primary">添加公告</button>
+            </div>
+        </header>
+
+        <!-- 搜索和筛选区域 -->
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="adminSearchInput" placeholder="搜索考试名称、类型、地点等..." class="search-input">
+                <button id="clearSearchButton" class="btn btn-secondary">清除</button>
+            </div>
+            
+            <!-- 时间筛选区域 -->
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label for="deadlineFilter">报名截止时间筛选：</label>
+                    <select id="deadlineFilter" class="filter-select">
+                        <option value="all">全部</option>
+                        <option value="today">今天截止</option>
+                        <option value="tomorrow">明天截止</option>
+                        <option value="week">一周内截止</option>
+                        <option value="month">一个月内截止</option>
+                        <option value="expired">已过期</option>
+                        <option value="unlimited">招满为止</option>
+                        <option value="custom">自定义时间范围</option>
+                    </select>
+                </div>
+                
+                <!-- 自定义时间范围 -->
+                <div id="customDateRange" class="custom-date-range" style="display: none;">
+                    <div class="date-input-group">
+                        <label for="startDate">开始时间：</label>
+                        <input type="date" id="startDate" class="date-input">
+                    </div>
+                    <div class="date-input-group">
+                        <label for="endDate">结束时间：</label>
+                        <input type="date" id="endDate" class="date-input">
+                    </div>
+                    <button id="applyCustomFilter" class="btn btn-primary btn-sm">应用</button>
+                </div>
+            </div>
+            
+            <div class="filter-info">
+                <span>共 <span id="totalCount">0</span> 条记录，显示 <span id="filteredCount">0</span> 条</span>
+                <span id="filterStatus" class="filter-status"></span>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div id="adminLoadingState" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>正在加载数据...</p>
+        </div>
+
+        <!-- 错误状态 -->
+        <div id="adminErrorState" class="error-state" style="display: none;">
+            <div class="error-icon">⚠️</div>
+            <p id="adminErrorMessage">加载失败，请检查网络连接</p>
+            <button id="adminRetryButton" class="btn btn-primary">重试</button>
+        </div>
+
+        <!-- 数据表格区域 -->
+        <main class="table-section">
+            <div class="table-container">
+                <table id="adminTable" class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>操作</th>
+                            <th>公告标题</th>
+                            <th>工作地点</th>
+                            <th>编制类型</th>
+                            <th>招录人数</th>
+                            <th>报名截止时间</th>
+                            <th>学历要求</th>
+                            <th>专业要求</th>
+                            <th>公告链接</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody">
+                        <!-- 动态生成的数据行 -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+        <!-- 添加/编辑公告模态框 -->
+        <div id="announcementModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">添加公告</h2>
+                    <button id="closeModalButton" class="close-button">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="announcementForm" class="form-grid">
+                        <div class="form-group">
+                            <label for="examName">公告标题 *</label>
+                            <textarea id="examName" name="examName" required class="form-textarea" 
+                                      placeholder="请输入公告标题"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="workLocation">工作地点</label>
+                            <input type="text" id="workLocation" name="workLocation" class="form-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contractType">编制类型</label>
+                            <input type="text" id="contractType" name="contractType" class="form-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recruitCount">招录人数</label>
+                            <div class="recruit-count-container">
+                                <input type="number" id="recruitCount" name="recruitCount" class="form-input recruit-count-input" 
+                                       placeholder="请输入数字" min="0">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="unknownRecruitCount" name="unknownRecruitCount">
+                                    <span>未知</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="deadline">报名截止时间</label>
+                            <div class="deadline-container">
+                                <input type="date" id="deadline" name="deadline" class="form-input deadline-input">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="unlimitedDeadline" name="unlimitedDeadline">
+                                    <span>招满为止</span>
+                                </label>
+                            </div>
+                        </div>
+
+
+
+                        <div class="form-group">
+                            <label for="educationRequirement">学历要求</label>
+                            <input type="text" id="educationRequirement" name="educationRequirement" class="form-input" 
+                                   placeholder="例如：本科及以上、硕士研究生等">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="majorRequirement">专业要求</label>
+                            <textarea id="majorRequirement" name="majorRequirement" class="form-textarea" 
+                                      placeholder="例如：计算机科学与技术、软件工程等"></textarea>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="officialWebsite">公告链接</label>
+                            <textarea id="officialWebsite" name="officialWebsite" class="form-textarea" 
+                                      placeholder="请输入公告链接或详细内容"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button id="cancelButton" class="btn btn-secondary">取消</button>
+                    <button id="saveButton" class="btn btn-primary">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 删除确认模态框 -->
+        <div id="deleteModal" class="modal" style="display: none;">
+            <div class="modal-content small-modal">
+                <div class="modal-header">
+                    <h2>确认删除</h2>
+                    <button id="closeDeleteModalButton" class="close-button">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除公告 "<span id="deleteAnnouncementName"></span>" 吗？</p>
+                    <p class="warning-text">此操作不可撤销！</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="cancelDeleteButton" class="btn btn-secondary">取消</button>
+                    <button id="confirmDeleteButton" class="btn btn-danger">确认删除</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作反馈提示 -->
+        <div id="toast" class="toast" style="display: none;">
+            <span id="toastMessage"></span>
+        </div>
+
+        <!-- 底部信息 -->
+        <footer class="admin-footer">
+            <div class="footer-content">
+                <p>考试公告汇总系统 - 后台管理 v1.0 (网页版)</p>
+                <p>最后更新时间：<span id="adminUpdateTime">--</span></p>
+                <p class="deployment-note">📢 网页版仅支持查看数据，编辑功能需部署到HTTPS服务器</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
